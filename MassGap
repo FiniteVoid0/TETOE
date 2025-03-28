@@ -1,108 +1,33 @@
-#!/usr/bin/env python3
-"""
-A script to compute the Yang-Mills mass gap according to the 
-Temporal Existential Theory of Everything (TETOE) model.
+# Constants
+c = 3e8  # Speed of light (m/s)
+GeV_to_kg = 1.78266192e-27  # Conversion factor from GeV to kg
+GeV_to_J = 1.60218e-10  # Conversion factor from GeV to Joules
 
-The TETOE mass formula is given by:
-    MassGap = A_YM * (1 + A_YM * M_P)
-where:
-    - A_YM is the fundamental energy scale of the gauge interaction.
-    - M_P is the Planck mass (in GeV).
-    
-In the paper, the mass gap for a pure Yang-Mills theory is reported as:
-    For SU(2): 4*m ~ 1.23 × 10^16 GeV
-    For SU(3): 4*m ~ 8.53 × 10^15 GeV
+# Yang-Mills mass gaps from TETOE model (in GeV)
+mass_gap_SU2_TETOE = 1.23e16  # GeV
+mass_gap_SU3_TETOE = 8.53e15  # GeV
 
-This script does the following:
-1. Solves the quadratic equation:
-       M_P * A_YM^2 + A_YM - MassGap = 0
-   to determine A_YM for each gauge group.
-2. Recomputes the mass gap using the TETOE formula.
-3. Determines the individual mass, m (where the paper defines 4*m as the mass gap).
-"""
+# Determinism costs from previous calculation (in J)
+determinism_cost_quantum = 1.465e-11  # J
+determinism_cost_macro = 1.465e-20  # J
 
-import math
-
-def compute_mass_gap(A, M_P):
+# Function to calculate corrected mass gap
+def corrected_mass_gap(mass_gap_TETOE, E_cost):
     """
-    Compute the dynamically generated mass gap according to TETOE.
-    
-    Args:
-        A (float): Fundamental energy scale of the gauge interaction (A_YM) in GeV.
-        M_P (float): Planck mass, in GeV.
-    
-    Returns:
-        float: The predicted mass gap computed as A * (1 + A * M_P).
+    Calculate the corrected Yang-Mills mass gap with determinism cost.
+    :param mass_gap_TETOE: Mass gap from TETOE model (in GeV).
+    :param E_cost: Determinism cost (in Joules).
+    :return: Corrected mass gap (in GeV).
     """
-    return A * (1 + A * M_P)
+    mass_gap_kg = mass_gap_TETOE * GeV_to_kg  # Convert mass gap to kg
+    correction_kg = E_cost / c**2  # Convert energy cost to kg
+    corrected_mass_gap_kg = mass_gap_kg - correction_kg  # Apply correction
+    return corrected_mass_gap_kg / GeV_to_kg  # Convert back to GeV
 
-def solve_for_A(mass_gap, M_P):
-    """
-    Solve for A_YM from the quadratic equation:
-        M_P * A^2 + A - mass_gap = 0
-    using the quadratic formula. We take only the positive solution.
-    
-    Args:
-        mass_gap (float): The mass gap value (here equal to 4*m) in GeV.
-        M_P (float): Planck mass in GeV.
-        
-    Returns:
-        float: The effective gauge interaction scale A_YM in GeV.
-    """
-    # The quadratic equation is: M_P * A^2 + A - mass_gap = 0
-    # Its discriminant is:
-    discriminant = 1 + 4 * M_P * mass_gap
-    # We take the positive root:
-    A = (-1 + math.sqrt(discriminant)) / (2 * M_P)
-    return A
+# Corrected mass gaps
+mass_gap_SU2_corrected = corrected_mass_gap(mass_gap_SU2_TETOE, determinism_cost_quantum)
+mass_gap_SU3_corrected = corrected_mass_gap(mass_gap_SU3_TETOE, determinism_cost_quantum)
 
-def main():
-    # Define the Planck mass in GeV (commonly ~1.22×10^19 GeV)
-    M_P = 1.22e19  
-    
-    # Mass gap values as reported in the paper (these are 4*m values)
-    mass_gap_SU2 = 1.23e16  # GeV for SU(2)
-    mass_gap_SU3 = 8.53e15  # GeV for SU(3)
-    
-    # Compute the effective gauge interaction scale A_YM for each group.
-    A_SU2 = solve_for_A(mass_gap_SU2, M_P)
-    A_SU3 = solve_for_A(mass_gap_SU3, M_P)
-    
-    # Recompute the mass gap using the TETOE equation for verification.
-    computed_gap_SU2 = compute_mass_gap(A_SU2, M_P)
-    computed_gap_SU3 = compute_mass_gap(A_SU3, M_P)
-    
-    # Since the paper gives 4*m as the gap, the individual mass is:
-    m_SU2 = mass_gap_SU2 / 4
-    m_SU3 = mass_gap_SU3 / 4
-    
-    # Output the results with detailed commentary.
-    print("TETOE Mass Gap Calculation Verification\n")
-    print("Planck mass, M_P =", "{:.3e}".format(M_P), "GeV")
-    print("\nFor SU(2):")
-    print("  Reported mass gap (4*m)   =", "{:.3e}".format(mass_gap_SU2), "GeV")
-    print("  Computed A_YM           =", "{:.3e}".format(A_SU2), "GeV")
-    print("  Recomputed mass gap     =", "{:.3e}".format(computed_gap_SU2), "GeV")
-    print("  Extracted m (m = gap/4) =", "{:.3e}".format(m_SU2), "GeV")
-    
-    print("\nFor SU(3):")
-    print("  Reported mass gap (4*m)   =", "{:.3e}".format(mass_gap_SU3), "GeV")
-    print("  Computed A_YM           =", "{:.3e}".format(A_SU3), "GeV")
-    print("  Recomputed mass gap     =", "{:.3e}".format(computed_gap_SU3), "GeV")
-    print("  Extracted m (m = gap/4) =", "{:.3e}".format(m_SU3), "GeV")
-    
-    # Verification step: Check if recomputed gap matches the reported gap.
-    tol_SU2 = 1e-6 * mass_gap_SU2  # tolerance for SU(2)
-    tol_SU3 = 1e-6 * mass_gap_SU3  # tolerance for SU(3)
-    if abs(computed_gap_SU2 - mass_gap_SU2) < tol_SU2:
-        print("\nSU(2) mass gap calculation verified within tolerance.")
-    else:
-        print("\nSU(2) mass gap calculation discrepancy detected!")
-    
-    if abs(computed_gap_SU3 - mass_gap_SU3) < tol_SU3:
-        print("SU(3) mass gap calculation verified within tolerance.")
-    else:
-        print("SU(3) mass gap calculation discrepancy detected!")
-
-if __name__ == "__main__":
-    main()
+# Output results
+print(f"Corrected Mass Gap (SU(2)): {mass_gap_SU2_corrected:.3e} GeV")
+print(f"Corrected Mass Gap (SU(3)): {mass_gap_SU3_corrected:.3e} GeV")
